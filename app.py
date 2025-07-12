@@ -1,53 +1,42 @@
+
 import streamlit as st
 import pandas as pd
 
-# Título da página
+# Título e layout
 st.set_page_config(page_title="Sorteador de Filmes", page_icon="🎬", layout="centered")
-
-st.markdown("""
-<style>
-    .main {
-        background-color: #f9f9f9;
-        padding: 2rem;
-        border-radius: 1rem;
-    }
-    h1 {
-        color: #333333;
-        font-family: 'Segoe UI', sans-serif;
-    }
-    .filme-box {
-        background-color: #ffffff;
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        margin-top: 1rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 st.title('🎬 Sorteador de Filmes')
 
-# Carrega o DataFrame
+# Carrega os dados
 df = pd.read_csv('teste_filme_sem_india.csv', sep=';', dtype=str)
 
-st.write("Clique no botão abaixo para sortear um filme aleatório (sem produções da Índia):")
+# Trata colunas numéricas
+df['startYear'] = pd.to_numeric(df['startYear'], errors='coerce')
+df['averageRating'] = pd.to_numeric(df['averageRating'], errors='coerce')
+df['numVotes'] = pd.to_numeric(df['numVotes'].str.replace(',', ''), errors='coerce')
 
+# Extrai todos os gêneros possíveis
+todos_generos = sorted(set(g for sub in df['genres'].dropna().str.split(',') for g in sub))
+
+# Filtros
+ano_minimo = st.slider('Ano mínimo de lançamento', min_value=int(df['startYear'].min()), max_value=int(df['startYear'].max()), value=2000)
+genero_selecionado = st.selectbox('Selecione um gênero', options=['Todos'] + todos_generos)
+
+# Aplica filtros
+df_filtrado = df[df['startYear'] >= ano_minimo].copy()
+
+if genero_selecionado != 'Todos':
+    df_filtrado = df_filtrado[df_filtrado['genres'].str.contains(genero_selecionado, na=False)]
+
+# Botão para sortear
 if st.button('🎲 Sortear Filme'):
-    filme = df.sample(n=1).iloc[0]
+    if not df_filtrado.empty:
+        filme = df_filtrado.sample(n=1).iloc[0]
 
-    st.markdown("""
-    <div class="filme-box">
-        <h2>{}</h2>
-        <p><strong>• Ano:</strong> {}</p>
-        <p><strong>• Nota IMDb:</strong> {} ({:,} votos)</p>
-        <p><strong>• Gêneros:</strong> {}</p>
-    </div>
-    """.format(
-        filme['title'],
-        filme['startYear'],
-        filme['averageRating'],
-        int(filme['numVotes'].replace(',', '')) if filme['numVotes'].replace(',', '').isdigit() else 0,
-        filme['genres']
-    ), unsafe_allow_html=True)
+        st.subheader(filme['title'])
+        st.write(f"• Ano: {int(filme['startYear'])}")
+        st.write(f"• Nota IMDb: {filme['averageRating']} ({int(filme['numVotes'])} votos)")
+        st.write(f"• Gêneros: {filme['genres']}")
+    else:
+        st.warning("Nenhum filme encontrado com os critérios selecionados.")
 else:
-    st.info("Nenhum filme sorteado ainda. Clique no botão acima para sortear um!")
+    st.info("Use os filtros e clique no botão para sortear um filme.")
