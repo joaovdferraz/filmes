@@ -31,11 +31,13 @@ if genero_selecionado != 'Todos':
 if st.button('🎲 Sortear Filme'):
     if not df_filtrado.empty:
         filme = df_filtrado.sample(n=1).iloc[0]
+        imdb_link = f"https://www.imdb.com/pt/title/{filme['titleId']}"
 
         st.subheader(filme['title'])
         st.write(f"• Ano: {int(filme['startYear'])}")
         st.write(f"• Nota IMDb: {filme['averageRating']} ({int(filme['numVotes'])} votos)")
         st.write(f"• Gêneros: {filme['genres']}")
+        st.markdown(f"[🔗 Ver no IMDb]({imdb_link})")
     else:
         st.warning("Nenhum filme encontrado com os critérios selecionados.")
 else:
